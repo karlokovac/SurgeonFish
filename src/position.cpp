@@ -77,8 +77,8 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) {
        << "\nFen: " << pos.fen() << "\nKey: " << std::hex << std::uppercase << std::setfill('0')
        << std::setw(16) << pos.key() << std::setfill(' ') << std::dec << "\nCheckers: ";
 
-    for (Bitboard b = pos.checkers(); b;)
-        os << UCIEngine::square(pop_lsb(b)) << " ";
+    for (const Square&& sq : occupied_squares(pos.checkers()))
+        os << UCIEngine::square(sq) << " ";
 
     if (int(Tablebases::MaxCardinality) >= popcount(pos.pieces()) && !pos.can_castle(ANY_CASTLING))
     {
@@ -343,9 +343,8 @@ void Position::set_state() const {
 
     set_check_info();
 
-    for (Bitboard b = pieces(); b;)
+    for (const Square&& s : occupied_squares(pieces()))
     {
-        Square s  = pop_lsb(b);
         Piece  pc = piece_on(s);
         st->key ^= Zobrist::psq[pc][s];
 
@@ -474,10 +473,9 @@ void Position::update_slider_blockers(Color c) const {
                      & pieces(~c);
     Bitboard occupancy = pieces() ^ snipers;
 
-    while (snipers)
+    for (const Square&& sniperSq : occupied_squares(snipers))
     {
-        Square   sniperSq = pop_lsb(snipers);
-        Bitboard b        = between_bb(ksq, sniperSq) & occupancy;
+        Bitboard b = between_bb(ksq, sniperSq) & occupancy;
 
         if (b && !more_than_one(b))
         {
@@ -617,7 +615,7 @@ bool Position::pseudo_legal(const Move m) const {
                 return false;
 
             // Our move must be a blocking interposition or a capture of the checking piece
-            if (!(between_bb(square<KING>(us), lsb(checkers())) & to))
+            if (!(between_bb(square<KING>(us), Square{least_significant_one(checkers())}) & to))
                 return false;
         }
         // In case of king moves under check we have to remove the king so as to catch
@@ -1135,7 +1133,7 @@ bool Position::see_ge(Move m, int threshold) const {
         {
             if ((swap = PawnValue - swap) < res)
                 break;
-            occupied ^= least_significant_square_bb(bb);
+            occupied ^= isolate_least_significant_one(bb);
 
             attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
         }
@@ -1144,14 +1142,14 @@ bool Position::see_ge(Move m, int threshold) const {
         {
             if ((swap = KnightValue - swap) < res)
                 break;
-            occupied ^= least_significant_square_bb(bb);
+            occupied ^= isolate_least_significant_one(bb);
         }
 
         else if ((bb = stmAttackers & pieces(BISHOP)))
         {
             if ((swap = BishopValue - swap) < res)
                 break;
-            occupied ^= least_significant_square_bb(bb);
+            occupied ^= isolate_least_significant_one(bb);
 
             attackers |= attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN);
         }
@@ -1160,7 +1158,7 @@ bool Position::see_ge(Move m, int threshold) const {
         {
             if ((swap = RookValue - swap) < res)
                 break;
-            occupied ^= least_significant_square_bb(bb);
+            occupied ^= isolate_least_significant_one(bb);
 
             attackers |= attacks_bb<ROOK>(to, occupied) & pieces(ROOK, QUEEN);
         }
@@ -1169,7 +1167,7 @@ bool Position::see_ge(Move m, int threshold) const {
         {
             if ((swap = QueenValue - swap) < res)
                 break;
-            occupied ^= least_significant_square_bb(bb);
+            occupied ^= isolate_least_significant_one(bb);
 
             attackers |= (attacks_bb<BISHOP>(to, occupied) & pieces(BISHOP, QUEEN))
                        | (attacks_bb<ROOK>(to, occupied) & pieces(ROOK, QUEEN));

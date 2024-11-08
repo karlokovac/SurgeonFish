@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <iostream>
 
+#include "../../bit_manipulation.h"
 #include "../../bitboard.h"
 #include "../nnue_common.h"
 #include "affine_transform.h"
@@ -42,11 +43,8 @@ alignas(CacheLineSize) static inline const
   std::array<std::array<std::uint16_t, 8>, 256> lookup_indices = []() {
       std::array<std::array<std::uint16_t, 8>, 256> v{};
       for (unsigned i = 0; i < 256; ++i)
-      {
-          std::uint64_t j = i, k = 0;
-          while (j)
-              v[i][k++] = pop_lsb(j);
-      }
+          for (std::uint64_t j = i, k = 0; j != 0; j = pop_least_significant_one(j))
+                v[i][k++] = least_significant_one(j);
       return v;
   }();
 

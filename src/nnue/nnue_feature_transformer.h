@@ -682,19 +682,12 @@ class FeatureTransformer {
                 const Piece    piece    = make_piece(c, pt);
                 const Bitboard oldBB    = entry.byColorBB[c] & entry.byTypeBB[pt];
                 const Bitboard newBB    = pos.pieces(c, pt);
-                Bitboard       toRemove = oldBB & ~newBB;
-                Bitboard       toAdd    = newBB & ~oldBB;
 
-                while (toRemove)
-                {
-                    Square sq = pop_lsb(toRemove);
+                for(const Square&& sq : occupied_squares(oldBB & ~newBB))
                     removed.push_back(FeatureSet::make_index<Perspective>(sq, piece, ksq));
-                }
-                while (toAdd)
-                {
-                    Square sq = pop_lsb(toAdd);
+                
+                for(const Square&& sq : occupied_squares(newBB & ~oldBB))
                     added.push_back(FeatureSet::make_index<Perspective>(sq, piece, ksq));
-                }
             }
         }
 

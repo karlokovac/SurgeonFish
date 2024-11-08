@@ -74,18 +74,11 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard ta
             b1 &= target;
             b2 &= target;
         }
-
-        while (b1)
-        {
-            Square to   = pop_lsb(b1);
+        for(const Square&& to : occupied_squares(b1))
             *moveList++ = Move(to - Up, to);
-        }
 
-        while (b2)
-        {
-            Square to   = pop_lsb(b2);
+        for(const Square&& to : occupied_squares(b2))
             *moveList++ = Move(to - Up - Up, to);
-        }
     }
 
     // Promotions and underpromotions
@@ -98,14 +91,14 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard ta
         if constexpr (Type == EVASIONS)
             b3 &= target;
 
-        while (b1)
-            moveList = make_promotions<Type, UpRight, true>(moveList, pop_lsb(b1));
+        for(const Square&& to : occupied_squares(b1))
+            moveList = make_promotions<Type, UpRight, true>(moveList, to);
 
-        while (b2)
-            moveList = make_promotions<Type, UpLeft, true>(moveList, pop_lsb(b2));
+        for(const Square&& to : occupied_squares(b2))
+            moveList = make_promotions<Type, UpLeft, true>(moveList, to);
 
-        while (b3)
-            moveList = make_promotions<Type, Up, false>(moveList, pop_lsb(b3));
+        for(const Square&& to : occupied_squares(b3))
+            moveList = make_promotions<Type, Up, false>(moveList, to);
     }
 
     // Standard and en passant captures
@@ -114,17 +107,11 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard ta
         Bitboard b1 = shift<UpRight>(pawnsNotOn7) & enemies;
         Bitboard b2 = shift<UpLeft>(pawnsNotOn7) & enemies;
 
-        while (b1)
-        {
-            Square to   = pop_lsb(b1);
+        for(const Square&& to : occupied_squares(b1))
             *moveList++ = Move(to - UpRight, to);
-        }
 
-        while (b2)
-        {
-            Square to   = pop_lsb(b2);
+        for(const Square&& to : occupied_squares(b2))
             *moveList++ = Move(to - UpLeft, to);
-        }
 
         if (pos.ep_square() != SQ_NONE)
         {
@@ -138,8 +125,8 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moveList, Bitboard ta
 
             assert(b1);
 
-            while (b1)
-                *moveList++ = Move::make<EN_PASSANT>(pop_lsb(b1), pos.ep_square());
+            for(const Square&& to : occupied_squares(b1))
+                *moveList++ = Move::make<EN_PASSANT>(to, pos.ep_square());
         }
     }
 
@@ -152,16 +139,9 @@ ExtMove* generate_moves(const Position& pos, ExtMove* moveList, Bitboard target)
 
     static_assert(Pt != KING && Pt != PAWN, "Unsupported piece type in generate_moves()");
 
-    Bitboard bb = pos.pieces(Us, Pt);
-
-    while (bb)
-    {
-        Square   from = pop_lsb(bb);
-        Bitboard b    = attacks_bb<Pt>(from, pos.pieces()) & target;
-
-        while (b)
-            *moveList++ = Move(from, pop_lsb(b));
-    }
+    for(const Square&& from : occupied_squares(pos.pieces(Us, Pt)))
+        for(const Square&& to : occupied_squares(attacks_bb<Pt>(from, pos.pieces()) & target))
+            *moveList++ = Move(from, to);
 
     return moveList;
 }
@@ -178,7 +158,7 @@ ExtMove* generate_all(const Position& pos, ExtMove* moveList) {
     // Skip generating non-king moves when in double check
     if (Type != EVASIONS || !more_than_one(pos.checkers()))
     {
-        target = Type == EVASIONS     ? between_bb(ksq, lsb(pos.checkers()))
+        target = Type == EVASIONS     ? between_bb(ksq, Square{least_significant_one(pos.checkers())})
                : Type == NON_EVASIONS ? ~pos.pieces(Us)
                : Type == CAPTURES     ? pos.pieces(~Us)
                                       : ~pos.pieces();  // QUIETS
@@ -191,9 +171,8 @@ ExtMove* generate_all(const Position& pos, ExtMove* moveList) {
     }
 
     Bitboard b = attacks_bb<KING>(ksq) & (Type == EVASIONS ? ~pos.pieces(Us) : target);
-
-    while (b)
-        *moveList++ = Move(ksq, pop_lsb(b));
+    for(const Square&& to : occupied_squares(b))
+        *moveList++ = Move(ksq, to);
 
     if ((Type == QUIETS || Type == NON_EVASIONS) && pos.can_castle(Us & ANY_CASTLING))
         for (CastlingRights cr : {Us & KING_SIDE, Us & QUEEN_SIDE})

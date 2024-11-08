@@ -246,7 +246,7 @@ inline int Position::count() const {
 template<PieceType Pt>
 inline Square Position::square(Color c) const {
     assert(count<Pt>(c) == 1);
-    return lsb(pieces(c, Pt));
+    return Square{least_significant_one(pieces(c, Pt))};
 }
 
 inline Square Position::ep_square() const { return st->epSquare; }
@@ -277,10 +277,10 @@ inline Bitboard Position::attacks_by(Color c) const {
                           : pawn_attacks_bb<BLACK>(pieces(BLACK, PAWN));
     else
     {
-        Bitboard threats   = 0;
+        Bitboard threats = 0;
         Bitboard attackers = pieces(c, Pt);
-        while (attackers)
-            threats |= attacks_bb<Pt>(pop_lsb(attackers), pieces());
+        for(const Square&& sq : occupied_squares(attackers))
+            threats |= attacks_bb<Pt>(sq, pieces());
         return threats;
     }
 }

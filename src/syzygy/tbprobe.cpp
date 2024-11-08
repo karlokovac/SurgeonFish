@@ -766,9 +766,9 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
         assert(type_of(pc) == PAWN);
 
         leadPawns = b = pos.pieces(color_of(pc), PAWN);
-        do
-            squares[size++] = pop_lsb(b) ^ flipSquares;
-        while (b);
+
+        for(const Square&& sq : occupied_squares(b))
+            squares[size++] = sq ^ flipSquares;
 
         leadPawnsCnt = size;
 
@@ -785,13 +785,10 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
 
     // Now we are ready to get all the position pieces (but the lead pawns) and
     // directly map them to the correct color and square.
-    b = pos.pieces() ^ leadPawns;
-    do
-    {
-        Square s       = pop_lsb(b);
+    for(const Square&& s : occupied_squares(pos.pieces() ^ leadPawns)){
         squares[size]  = s ^ flipSquares;
         pieces[size++] = Piece(pos.piece_on(s) ^ flipColor);
-    } while (b);
+    }
 
     assert(size >= 2);
 
