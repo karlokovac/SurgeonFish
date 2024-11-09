@@ -58,8 +58,6 @@ constexpr Bitboard Rank7BB = Rank1BB << (8 * 6);
 constexpr Bitboard Rank8BB = Rank1BB << (8 * 7);
 
 
-extern uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
-
 extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard LineBB[SQUARE_NB][SQUARE_NB];
 extern Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
@@ -209,7 +207,7 @@ inline int distance<Rank>(Square x, Square y) {
 
 template<>
 inline int distance<Square>(Square x, Square y) {
-    return SquareDistance[x][y];
+    return std::max(distance<File>(x, y), distance<Rank>(x, y));
 }
 
 inline int edge_distance(File f) { return std::min(f, File(FILE_H - f)); }
